@@ -135,10 +135,8 @@ void *thread_read (void *arg) {
 }
 
 /* function to create threads and read text file  */
-void create_threads_and_read (int rows, int cols, int max_thread_count, file_read_data data) {
+void create_threads_and_read (int rows, int cols, int max_thread_count, file_read_data data, FILE *fp) {
 
-    FILE *fp;
-    fp = fopen (data.filename, "r");
     if (fp == NULL) {
         printf ("Unable to read file %s\n", data.filename);
         exit (EXIT_FAILURE);
@@ -191,7 +189,8 @@ void create_threads_and_read (int rows, int cols, int max_thread_count, file_rea
 }
 
 int main (int argc, char **argv) {
-
+    
+    FILE *fp = fopen (data.filename, "r");
     /* there must be exactly 7 cmd line args  */
     if (argc != 7) {
         printf ("Incorrect input...\n");
@@ -253,7 +252,8 @@ int main (int argc, char **argv) {
     // create_threads_and_read (I, J, MAX_THREADS, file);
     for (int max_thread_count = 1; max_thread_count <= MAX_THREADS; ++max_thread_count) {
         file_read_data file = {.filename = in1, .cols = J, .matrix = matrix1, .max_rows = I};
-        create_threads_and_read (I, J, max_thread_count, file);
+        if(fp==NULL) break;
+        create_threads_and_read (I, J, max_thread_count, file, fp);
     }
 
     // printf ("After reading matrix 1...\n");
