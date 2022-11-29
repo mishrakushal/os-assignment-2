@@ -3,6 +3,8 @@
 #include <pthread.h>
 #include <unistd.h>
 #include <string.h>
+#include <sys/ipc.h>
+#include <sys/shm.h>
 
 typedef long long int lli;
 
@@ -187,7 +189,14 @@ void create_threads_and_read (int rows, int cols, int max_thread_count, file_rea
 }
 
 int main (int argc, char **argv) {
-    
+
+    key_t key = ftok("shmfile",65);
+    // shmget returns an identifier in shmid
+    int shmid = shmget(key,1024,0666|IPC_CREAT);
+  
+    // shmat to attach to shared memory
+    char *str = (char*) shmat(shmid,(void*)0,0);
+
     FILE *fp = fopen ("./in1.txt", "r");
     /* there must be exactly 7 cmd line args  */
     if (argc != 7) {
@@ -242,8 +251,12 @@ int main (int argc, char **argv) {
         3   : 1, 1, 1
         4   :
         5   :
-    */
-
+    */  
+    //detach from shared memory 
+    shmdt(str);
+    
+    // destroy the shared memory
+    shmctl(shmid,IPC_RMID,NULL);
     
     /* for in1.txt  */
     // file_read_data file = {.filename = in1, .cols = J, .matrix = matrix1, .max_rows = I};
