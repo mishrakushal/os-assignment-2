@@ -35,7 +35,7 @@ typedef struct {
 /* function declarations  */
 int read_matrix (const char*);
 void *thread_read (void *);
-void create_threads_and_read (int, int, int, file_read_data);
+void create_threads_and_read (int, int, int, file_read_data, FILE);
 
 
 /* single-threaded function to read matrix from the text file  */
