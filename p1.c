@@ -33,13 +33,13 @@ typedef struct {
 
 
 /* function declarations  */
-int read_matrix (const char*);
+int read_matrix (const char*, lli row, lli cols);
 void *thread_read (void *);
-void create_threads_and_read (int, int, int, file_read_data, FILE);
+void create_threads_and_read (int, int, int, file_read_data, FILE *);
 
 
 /* single-threaded function to read matrix from the text file  */
-int read_matrix (const char* filename) {
+int read_matrix (const char* filename, lli rows, lli cols) {
 
     /* get input file number from the file name  */
     char *filename_as_string;
@@ -232,8 +232,8 @@ int main (int argc, char **argv) {
     strcpy(out, argv[6]);
 
     /* READING VALUES FROM TXT FILE INTO MATRICES  */
-    read_matrix (in1);
-    read_matrix (in2);
+    read_matrix (in1,I,J);
+    read_matrix (in2,J,K);
 
     /*
         num_threads: lines_read 
