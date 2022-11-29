@@ -174,9 +174,9 @@ void create_threads_and_read (int rows, int cols, int max_thread_count, file_rea
     printf ("Threads created\n");
 
     // ! --- JOIN THE THREADS ---
-    for (int i = 0; i < max_thread_count; ++i) {
-        // printf ("Thread %d joined\t", i);
-    }
+    // for (int i = 0; i < max_thread_count; ++i) {
+    //     // printf ("Thread %d joined\t", i);
+    // }
     printf ("\n");
     // ? --- DEBUG STATEMENT ---
     printf ("All threads joined\n\n");
@@ -188,7 +188,7 @@ void create_threads_and_read (int rows, int cols, int max_thread_count, file_rea
 
 int main (int argc, char **argv) {
     
-    FILE *fp = fopen (data.filename, "r");
+    FILE *fp = fopen ("./in1.txt", "r");
     /* there must be exactly 7 cmd line args  */
     if (argc != 7) {
         printf ("Incorrect input...\n");
