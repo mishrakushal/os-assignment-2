@@ -4,6 +4,8 @@
 #include <unistd.h>
 #include <string.h>
 #include <time.h>
+#include <sys/ipc.h>
+#include <sys/shm.h>
 
 typedef long long int lli;
 
@@ -36,51 +38,49 @@ typedef struct {
 
 
 /* function declarations  */
-int read_matrix (const char*);
+int read_matrix (const char*, lli row, lli cols);
 void *thread_read (void *);
 void create_threads_and_read (int, int, int, file_read_data, FILE *);
 
 
 /* single-threaded function to read matrix from the text file  */
-// int read_matrix (const char* filename) {
+int read_matrix (const char* filename, lli rows, lli cols) {
 
-//     /* get input file number from the file name  */
-//     char filename_as_string[10];
-//     strcpy (filename_as_string, filename);
-//     int file_number = filename_as_string[2] - '0';
+    /* get input file number from the file name  */
+    char *filename_as_string;
+    strcpy (filename_as_string, filename);
+    int file_number = filename_as_string[2] - '0';
 
-//     lli rows, cols;
-//     if (file_number == 1) {
-//         rows = I;
-//         cols = J;
-//         matrix1 = (lli *) malloc (rows * cols * sizeof (lli));
-//     } else {
-//         rows = J;
-//         cols = J;
-//         matrix2 = (lli *) malloc (rows * cols * sizeof (lli));
-//     }
+    // lli rows, cols;
+    // if (file_number == 1) {
+    //     rows = I;
+    //     cols = J;
+    //     matrix1 = (lli *) malloc (rows * cols * sizeof (lli));
+    // } else {
+    //     rows = J;
+    //     cols = K;
+    //     matrix2 = (lli *) malloc (rows * cols * sizeof (lli));
+    // }
 
-//     FILE *fp;
-//     fp = fopen (filename, "r");
-//     if (fp == NULL) {
-//         return EXIT_FAILURE;
-//     }
+    FILE *fp;
+    fp = fopen (filename, "r");
+    if (fp == NULL) {
+        return EXIT_FAILURE;
+    }
 
-//     for (lli _i = 0; _i < rows; ++_i) {
-//         for (lli _j = 0; _j < cols; ++_j) {
-//             if (file_number == 1) {
-//                 fscanf(fp, "%lld", &matrix1[(_i * rows) + _j]);
-//             } else {
-//                 fscanf(fp, "%lld", &matrix2[(_i * rows) + _j]);
-//             }
-//         }
-//     }
+    for (lli i = 0; i < rows; ++i) {
+        for (lli j = 0; j < cols; ++j) {
+            if (file_number == 1) {
+                fscanf(fp, "%lld", &matrix1[i * rows + j]);
+            } else {
+                fscanf(fp, "%lld", &matrix2[i * rows + j]);
+            }
+        }
+    }
 
-//     fclose (fp); 
-//     return EXIT_SUCCESS;
-// }
-
-
+    fclose (fp); 
+    return EXIT_SUCCESS;
+}
 
 void *thread_read (void *arg) {
     printf ("In thread_read function\n");
@@ -181,9 +181,9 @@ void create_threads_and_read (int rows, int cols, int max_thread_count, file_rea
     printf ("Threads created\n");
 
     // ! --- JOIN THE THREADS ---
-    for (int i = 0; i < max_thread_count; ++i) {
-        // printf ("Thread %d joined\t", i);
-    }
+    // for (int i = 0; i < max_thread_count; ++i) {
+    //     // printf ("Thread %d joined\t", i);
+    // }
     printf ("\n");
     // ? --- DEBUG STATEMENT ---
     printf ("All threads joined\n\n");
@@ -194,7 +194,14 @@ void create_threads_and_read (int rows, int cols, int max_thread_count, file_rea
 }
 
 int main (int argc, char **argv) {
-    
+    key_t key = ftok("shmfile",65);
+    // shmget returns an identifier in shmid
+    int shmid = shmget(key,1024,0666|IPC_CREAT);
+  
+    // shmat to attach to shared memory
+    char *str = (char*) shmat(shmid,(void*)0,0);
+
+    FILE *fp = fopen ("./in1.txt", "r");
     /* there must be exactly 7 cmd line args  */
     if (argc != 7) {
         printf ("Incorrect input...\n");
@@ -206,17 +213,17 @@ int main (int argc, char **argv) {
     J = atoi (argv[2]);
     K = atoi (argv[3]);
 
-    matrix1 = (lli **) malloc (I *  sizeof (lli *));
+    matrix1 = (lli **) malloc (I * sizeof (lli *));
     for (lli _i = 0; _i < I; ++_i) {
 		matrix1[_i] = (lli *) malloc(J * sizeof(lli));
     }
 
-    matrix2 = (lli **) malloc (J * K * sizeof (lli *));
+    matrix2 = (lli **) malloc (J * sizeof (lli *));
     for (lli _j = 0; _j < J; ++_j) {
 		matrix2[_j] = (lli *) malloc(K * sizeof(lli));
     }
 
-    output = (lli **) malloc (I * K * sizeof (lli *));
+    output = (lli **) malloc (I * sizeof (lli *));
     for (lli _i = 0; _i < I; ++_i) {
 		output[_i] = (lli *) malloc(K * sizeof(lli));
     }
@@ -238,8 +245,8 @@ int main (int argc, char **argv) {
     strcpy(out, argv[6]);
 
     /* READING VALUES FROM TXT FILE INTO MATRICES  */
-    // read_matrix (in1);
-    // read_matrix (in2);
+    read_matrix (in1,I,J);
+    read_matrix (in2,J,K);
 
     /*
         num_threads: lines_read 
@@ -248,8 +255,12 @@ int main (int argc, char **argv) {
         3   : 1, 1, 1
         4   :
         5   :
-    */
-
+    */  
+    //detach from shared memory 
+    shmdt(str);
+    
+    // destroy the shared memory
+    shmctl(shmid,IPC_RMID,NULL);
     
     /* for in1.txt  */
     // file_read_data file = {.filename = in1, .cols = J, .matrix = matrix1, .max_rows = I};
