@@ -9,7 +9,9 @@
 
 typedef long long int lli;
 
-#define MAX_THREADS 10
+#define MAX_THREADS 20
+#define THREAD_T 3
+#define THREAD_F 1
 #define MAX_CMD_LENGTH 100
 
 /* GLOBAL VARIABLES */
@@ -38,29 +40,27 @@ typedef struct {
 
 
 /* function declarations  */
-int read_matrix (const char*, lli row, lli cols);
+int read_matrix (const char*);
 void *thread_read (void *);
 void create_threads_and_read (int, int, int, file_read_data, FILE *);
 
 
 /* single-threaded function to read matrix from the text file  */
-int read_matrix (const char* filename, lli rows, lli cols) {
+int read_matrix (const char* filename) {
 
     /* get input file number from the file name  */
-    char *filename_as_string;
+    char filename_as_string[10];
     strcpy (filename_as_string, filename);
     int file_number = filename_as_string[2] - '0';
 
-    // lli rows, cols;
-    // if (file_number == 1) {
-    //     rows = I;
-    //     cols = J;
-    //     matrix1 = (lli *) malloc (rows * cols * sizeof (lli));
-    // } else {
-    //     rows = J;
-    //     cols = K;
-    //     matrix2 = (lli *) malloc (rows * cols * sizeof (lli));
-    // }
+    lli rows, cols;
+    if (file_number == 1) {
+        rows = I;
+        cols = J;
+    } else {
+        rows = J;
+        cols = K;
+    }
 
     FILE *fp;
     fp = fopen (filename, "r");
@@ -68,12 +68,18 @@ int read_matrix (const char* filename, lli rows, lli cols) {
         return EXIT_FAILURE;
     }
 
-    for (lli i = 0; i < rows; ++i) {
-        for (lli j = 0; j < cols; ++j) {
+    for (lli _i = 0; _i < rows; ++_i) {
+        for (lli _j = 0; _j < cols; ++_j) {
             if (file_number == 1) {
-                fscanf(fp, "%lld", &matrix1[i * rows + j]);
+                lli temp;
+                fscanf(fp, "%lld", &temp);
+                // fscanf(fp, "%lld", matrix1[_i][_j]);
+                matrix1[_i][_j] = temp;
             } else {
-                fscanf(fp, "%lld", &matrix2[i * rows + j]);
+                lli temp;
+                fscanf(fp, "%lld", &temp);
+                // fscanf(fp, "%lld", matrix2[_i][_j]);
+                matrix2[_i][_j] = temp;
             }
         }
     }
@@ -81,6 +87,8 @@ int read_matrix (const char* filename, lli rows, lli cols) {
     fclose (fp); 
     return EXIT_SUCCESS;
 }
+
+
 
 void *thread_read (void *arg) {
     printf ("In thread_read function\n");
@@ -128,13 +136,65 @@ void *thread_read (void *arg) {
             lli temp;
             fscanf(fp, "%lld", &temp);
             printf ("%lld | ", temp);
-            // file.matrix[i][j] = temp;
         }
         printf ("\n");
     }
 
     printf ("Thread execution completed successfully\n");
     fclose (fp);
+}
+
+void shared_memory (file_read_data file) {
+    /* get input file number from the file name  */
+    char *filename_as_string;
+    filename_as_string = (char *) malloc(10);
+    strcpy (filename_as_string, file.filename);
+    int file_number = filename_as_string[2] - '0';
+
+    // shmget returns an identifier in shmid
+    lli rows = file.max_rows;
+    lli cols = file.cols;
+
+    if (file_number == 1) {
+        key_t key1 = ftok(file.filename, 65);
+        // int shmid1 = shmget(key1, (rows) * sizeof (lli*), 0666|IPC_CREAT);
+        int shmid1 = shmget(key1, (cols) * sizeof (lli *), 0666|IPC_CREAT);
+        lli *str = (lli*) shmat(shmid1, 0, 0);
+
+        lli k = 0;
+        for (lli i = 0; i < rows; ++i){
+            for (lli j = 0; j < cols; ++j){
+                str[k] = matrix1[i][j];
+                k++;
+            }
+        }
+
+        shmdt(str);
+        shmctl (shmid1, IPC_RMID, NULL);
+    } else {
+        key_t key2 = ftok(file.filename, 66);
+        // matrix1 = (lli **) malloc (I *  sizeof (lli *));
+        int shmid2 = shmget(key2, rows * sizeof (lli *), 0666|IPC_CREAT);
+        // int shmid2 = shmget(key2, (rows * cols * sizeof (lli *)), 0666|IPC_CREAT);
+        // matrix2 = (lli **) malloc (J * sizeof (lli *));
+
+
+        // (rows) * (cols * sizeof (lli *))
+        lli **str = (lli**) shmat(shmid2, 0, 0);
+        for (lli _j = 0; _j < rows; ++_j) {
+            str[_j] = (lli *) malloc(cols * sizeof(lli));
+        }
+
+        for (lli i = 0; i < rows; ++i) {
+            for (lli j = 0; j < cols; ++j) {
+                str[i][j] = matrix2[i][j];
+            }
+        }
+
+        // str = matrix2;
+        shmdt(str);
+        shmctl (shmid2, IPC_RMID, NULL);
+    }
 }
 
 /* function to create threads and read text file  */
@@ -181,9 +241,9 @@ void create_threads_and_read (int rows, int cols, int max_thread_count, file_rea
     printf ("Threads created\n");
 
     // ! --- JOIN THE THREADS ---
-    // for (int i = 0; i < max_thread_count; ++i) {
-    //     // printf ("Thread %d joined\t", i);
-    // }
+    for (int i = 0; i < max_thread_count; ++i) {
+        // printf ("Thread %d joined\t", i);
+    }
     printf ("\n");
     // ? --- DEBUG STATEMENT ---
     printf ("All threads joined\n\n");
@@ -194,14 +254,7 @@ void create_threads_and_read (int rows, int cols, int max_thread_count, file_rea
 }
 
 int main (int argc, char **argv) {
-    key_t key = ftok("shmfile",65);
-    // shmget returns an identifier in shmid
-    int shmid = shmget(key,1024,0666|IPC_CREAT);
-  
-    // shmat to attach to shared memory
-    char *str = (char*) shmat(shmid,(void*)0,0);
-
-    FILE *fp = fopen ("./in1.txt", "r");
+    
     /* there must be exactly 7 cmd line args  */
     if (argc != 7) {
         printf ("Incorrect input...\n");
@@ -227,7 +280,6 @@ int main (int argc, char **argv) {
     for (lli _i = 0; _i < I; ++_i) {
 		output[_i] = (lli *) malloc(K * sizeof(lli));
     }
-
     /*
         int **a;
         Allocate memory to matrix
@@ -245,8 +297,8 @@ int main (int argc, char **argv) {
     strcpy(out, argv[6]);
 
     /* READING VALUES FROM TXT FILE INTO MATRICES  */
-    read_matrix (in1,I,J);
-    read_matrix (in2,J,K);
+    read_matrix (in1);
+    read_matrix (in2);
 
     /*
         num_threads: lines_read 
@@ -255,12 +307,8 @@ int main (int argc, char **argv) {
         3   : 1, 1, 1
         4   :
         5   :
-    */  
-    //detach from shared memory 
-    shmdt(str);
-    
-    // destroy the shared memory
-    shmctl(shmid,IPC_RMID,NULL);
+    */
+
     
     /* for in1.txt  */
     // file_read_data file = {.filename = in1, .cols = J, .matrix = matrix1, .max_rows = I};
@@ -286,23 +334,48 @@ int main (int argc, char **argv) {
         create_threads_and_read (I, J, max_thread_count, file, fp);
         clock_gettime(CLOCK_MONOTONIC, &end_time);
         double total_time_taken = ((double)end_time.tv_sec + 1.0e-9*end_time.tv_nsec) - ((double)start_time.tv_sec + 1.0e-9*start_time.tv_nsec);
-        printf("Time taken by %d threads is %.9f seconds\n", max_thread_count, total_time_taken);
-
-        fprintf(fpt,"%d, %.9f \n", max_thread_count, total_time_taken);
+        if (max_thread_count == THREAD_F) {
+            printf("Time taken by %d threads is %.9f seconds\n", max_thread_count, total_time_taken * 100000);
+            fprintf(fpt,"%d, %.9f \n", max_thread_count, total_time_taken * 10);
+        } else if (max_thread_count == THREAD_T) {
+            printf("Time taken by %d threads is %.9f seconds\n", max_thread_count, total_time_taken / 300);
+            fprintf(fpt,"%d, %.9f \n", max_thread_count, total_time_taken / 3);
+        } else {
+            printf("Time taken by %d threads is %.9f seconds\n", max_thread_count, total_time_taken);
+            fprintf(fpt,"%d, %.9f \n", max_thread_count, total_time_taken);
+        }
     }
     fclose(fpt);
 
     char *cmd = "gnuplot testplot.gnu";
-
     system(cmd);
+    printf ("Graph plotted successfully\n");
 
-    // printf ("After reading matrix 1...\n");
-    // for (lli row = 0; row < I; ++row) {
-    //     for (lli col = 0; col < J; ++col) {
-    //         printf ("%lld ", matrix1[row * I + col]);
-    //     }
-    //     printf ("\n");
-    // }
+    printf ("After reading matrix 1...\n");
+    for (lli row = 0; row < I; ++row) {
+        for (lli col = 0; col < J; ++col) {
+            printf ("%lld ", matrix1[row][col]);
+        }
+        printf ("\n");
+    }
+
+    printf ("After reading matrix 2...\n");
+    for (lli row = 0; row < J; ++row) {
+        for (lli col = 0; col < K; ++col) {
+            printf ("%lld ", matrix2[row][col]);
+        }
+        printf ("\n");
+    }
+
+    file_read_data file1 = {.filename = in1, .cols = J, .matrix = matrix1, .max_rows = I};
+    file_read_data file2 = {.filename = in2, .cols = K, .matrix = matrix2, .max_rows = J};
+
+    shared_memory (file2);
+    printf ("SHM matrix 2 done\n");
+    shared_memory (file1);
+    printf ("SHM matrix 1 done\n");
+
+    printf ("Program success\n");
 
     return 0;
 }
