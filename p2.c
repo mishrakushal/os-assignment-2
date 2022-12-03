@@ -10,6 +10,7 @@ typedef long long int lli;
 
 #define MAX_THREADS 3
 pthread_t threads[MAX_THREADS]; // {t1, t2}
+int cells_done = 0;
 
 typedef struct {
     lli row[2];
@@ -35,16 +36,16 @@ void *thread_multiply (void *arg) {
     printf ("Thread execution completed successfully\n");
 }
 
-void create_threads_and_multiply (int i, int j, int k, int max_thread_count, lli matrix1[3][2], lli matrix2[2][1], lli **output) {
+void create_threads_and_multiply (int i, int j, int k, lli* row, lli** matrix2, lli **output) {
 
-    int cells_done = 0;
-    printf ("max_thread_count: %d\n", max_thread_count);
-    for (int i = 0; i < max_thread_count; ++i) {
-        int cells_per_thread = (i*k / max_thread_count);
+    
+    printf ("MAX_THREADS: %d\n", MAX_THREADS);
+    for (int i = 0; i < MAX_THREADS; ++i) {
+        int cells_per_thread = (i*k / MAX_THREADS);
 
         // last thread may have some extra lines to read
-        if(i == max_thread_count - 1) {
-            cells_per_thread += (i*k % max_thread_count);
+        if(i == MAX_THREADS - 1) {
+            cells_per_thread += (i*k % MAX_THREADS);
         }
 
         printf ("lines read: %d\n", cells_done);
@@ -52,8 +53,7 @@ void create_threads_and_multiply (int i, int j, int k, int max_thread_count, lli
             .row = row,
             .matrix2 = matrix2,
             .output = output,
-            .start_cell = cells_done,
-            .end_cell = (cells_done+cells_per_thread-1),
+            .cell_no = cells_done++,
             .j = j,
             .k = k
         };
@@ -62,14 +62,13 @@ void create_threads_and_multiply (int i, int j, int k, int max_thread_count, lli
             fprintf(stderr, "pthread_create failed!\n");
             exit (EXIT_FAILURE);
         }
-        pthread_join (threads[i], NULL);
-        cells_done += cells_per_thread;
+        // pthread_join (threads[i], NULL);
     }
     // ? --- DEBUG STATEMENT ---
     printf ("Threads created\n");
 
     // ! --- JOIN THE THREADS ---
-    for (int i = 0; i < max_thread_count; ++i) {
+    for (int i = 0; i < MAX_THREADS; ++i) {
         // printf ("Thread %d joined\t", i);
     }
     printf ("\n");
@@ -105,24 +104,22 @@ char* ipc_read()
 int main()
 {
     //get i,j,k
-    int i=3,j=2,k=1;
+    int i=4,j=3,k=2;
 
     //declare output matrix
     lli** output;
 
     //get 2d matrix
-    lli matrix2[2][1]={{1},{1}};
+    lli matrix2[3][2]={{1,1},{1,1},{1,1}};
 
     //get rows and then keep calling and sending it to function
     //write output matrix
 
     
-    lli matrix1[3][2]={{1,2},{5,6},{9,10}};
+    lli matrix1[4][3]={{1,2,3},{5,6,7},{8,9,10},{11,12,13}};
 
 
-    for (int max_thread_count = 1; max_thread_count <= MAX_THREADS; ++max_thread_count) {
-        create_threads_and_multiply (i, j, k, max_thread_count, matrix1, matrix2, output);
-    }
+    create_threads_and_multiply (i, j, k, row, matrix2, output);
 
     return 0;
 }
