@@ -170,30 +170,30 @@ void shared_memory (file_read_data file) {
         }
 
         shmdt(str1);
-        shmctl (shmid1, IPC_RMID, NULL);
+        // shmctl (shmid1, IPC_RMID, NULL);
     } else {
         key_t key2 = ftok(file.filename, 66);
         // matrix1 = (lli **) malloc (I *  sizeof (lli *));
-        int shmid2 = shmget(key2, rows * sizeof (lli *), 0666|IPC_CREAT);
+        int shmid2 = shmget(key2, rows * cols * sizeof (lli *), 0666|IPC_CREAT);
         // int shmid2 = shmget(key2, (rows * cols * sizeof (lli *)), 0666|IPC_CREAT);
         // matrix2 = (lli **) malloc (J * sizeof (lli *));
 
 
         // (rows) * (cols * sizeof (lli *))
-        lli **str2 = (lli**) shmat(shmid2, 0, 0);
-        for (lli _j = 0; _j < rows; ++_j) {
-            str2[_j] = (lli *) malloc(cols * sizeof(lli));
-        }
+
+        lli *str2 = (lli*) shmat(shmid2, 0, 0);
 
         for (lli i = 0; i < rows; ++i) {
             for (lli j = 0; j < cols; ++j) {
-                str2[i][j] = matrix2[i][j];
+                str2[i * rows + j] = matrix2[i][j];
+                // str2[i][j] = matrix2[i][j];
+                printf ("%lld ", str2[i * rows + j]);
             }
+            printf ("\n");
         }
 
-        // str = matrix2;
         shmdt(str2);
-        shmctl (shmid2, IPC_RMID, NULL);
+        // shmctl (shmid2, IPC_RMID, NULL);
     }
 }
 
@@ -375,7 +375,7 @@ int main (int argc, char **argv) {
     shared_memory (file1);
     printf ("SHM matrix 1 done\n");
 
-    printf ("Program success\n");
+    printf ("Program success. Written into IPC...\n");
 
     return 0;
 }
