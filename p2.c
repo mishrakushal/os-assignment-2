@@ -8,9 +8,7 @@
 
 typedef long long int lli;
 
-#define MAX_THREADS 3
-pthread_t threads[MAX_THREADS]; // {t1, t2}
-int cells_done = 0;
+#define THREAD_NO 3
 
 lli I, J, K;
 
@@ -107,14 +105,12 @@ int main()
 
     for(int i=0;i<I;i++)
     {
-        if(MAX_THREADS>J)
+        if(THREAD_NO>J)
             create_threads_and_multiply (J, matrix1[i], i);
         else
-            create_threads_and_multiply (MAX_THREADS, matrix1[i], i);
+            create_threads_and_multiply (THREAD_NO, matrix1[i], i);
         
     }
-
-    printf ("first cell: %lld\n", output[0][0]);
 
 
 
