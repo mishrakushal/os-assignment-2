@@ -12,13 +12,20 @@ typedef long long int lli;
 pthread_t threads[MAX_THREADS]; // {t1, t2}
 int cells_done = 0;
 
+lli I, J, K;
+
+lli matrix2[3][2]={{1,2},{1,2},{1,2}};
+lli matrix1[4][3]={{1,2,3},{5,6,7},{8,9,10},{11,12,13}};
+
+// lli **matrix1, **matrix2;
+lli **output;
+pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
+
 typedef struct {
-    lli row[2];
-    lli matrix2[2][1];
-    lli **output;
-    int cell_no;
-    int j;
-    int k;
+    lli* row;
+    int row_no;
+    int start_column;
+    int end_column;
 } working_cells_data;
 
 void *thread_multiply (void *arg) {
@@ -30,96 +37,86 @@ void *thread_multiply (void *arg) {
     // printf ("end_row: %d\n", end_row);
     // printf ("max_row: %lld\n", max_rows);
     // printf ("cols: %d\n", cols);
-    for(int i=0; i<data.j; i++)
-        data.output[data.cell_no/data.k][data.cell_no%data.k] += data.row[i]*data.matrix2[i][data.cell_no%data.k];
+    for(int n=data.start_column; n<=data.end_column; n++)
+    {
+        output[data.row_no][n]=0;
+        for(int i=0; i<J; i++)
+        {
+            output[data.row_no][n] += data.row[i]*matrix2[i][n];
+        }
+        printf ("calculated cell: %lld\n", output[data.row_no][n]);
+    }
+    
 
     printf ("Thread execution completed successfully\n");
 }
 
-void create_threads_and_multiply (int i, int j, int k, lli* row, lli** matrix2, lli **output) {
+void create_threads_and_multiply (int max_thread_count, lli* row, int row_no) {
 
-    
-    printf ("MAX_THREADS: %d\n", MAX_THREADS);
-    for (int i = 0; i < MAX_THREADS; ++i) {
-        int cells_per_thread = (i*k / MAX_THREADS);
+    pthread_t threads[max_thread_count];    // {t1, t2}
+    int cells_done = 0;
+    // printf ("max_thread_count: %d\n", max_thread_count);
+    for (int i = 0; i < max_thread_count; ++i) {
+        int cells_per_thread = (K / max_thread_count);
 
         // last thread may have some extra lines to read
-        if(i == MAX_THREADS - 1) {
-            cells_per_thread += (i*k % MAX_THREADS);
+        if(i == max_thread_count - 1) {
+            cells_per_thread += (K % max_thread_count);
         }
 
-        printf ("lines read: %d\n", cells_done);
+        printf ("cells done: %d\n", cells_done);
         working_cells_data work_data = {
             .row = row,
-            .matrix2 = matrix2,
-            .output = output,
-            .cell_no = cells_done++,
-            .j = j,
-            .k = k
+            .row_no = row_no,
+            .start_column = cells_done,
+            .end_column = (cells_done+cells_per_thread-1)
         };
 
+        pthread_mutex_lock(&lock);
         if (pthread_create(&threads[i], NULL, thread_multiply, &work_data)) {
             fprintf(stderr, "pthread_create failed!\n");
             exit (EXIT_FAILURE);
         }
-        // pthread_join (threads[i], NULL);
-    }
-    // ? --- DEBUG STATEMENT ---
-    printf ("Threads created\n");
-
-    // ! --- JOIN THE THREADS ---
-    for (int i = 0; i < MAX_THREADS; ++i) {
-        // printf ("Thread %d joined\t", i);
-    }
-    printf ("\n");
-    // ? --- DEBUG STATEMENT ---
-    printf ("All threads joined\n\n");
-
-    // ! --- KILL/CLOSE ALL THREADS ---
-
-}
-
-char* ipc_read()
-{
-	// ftok to generate unique key
-	key_t key = ftok("shmfile",65);
-
-	// shmget returns an identifier in shmid
-	int shmid = shmget(key,1024,0666|IPC_CREAT);
-
-	// shmat to attach to shared memory
-	char *str = (char*) shmat(shmid,(void*)0,0);
-
-	printf("Data read from memory: %s\n",str);
-	
-	//detach from shared memory
-	shmdt(str);
-	
-	// destroy the shared memory
-	shmctl(shmid,IPC_RMID,NULL);
-
-    return str;
+        pthread_mutex_unlock(&lock);
+        pthread_join (threads[i], NULL);
+        cells_done += cells_per_thread;
+        }
 }
 
 int main()
 {
     //get i,j,k
-    int i=4,j=3,k=2;
+    I=4;
+    J=3;
+    K=2;
 
-    //declare output matrix
-    lli** output;
+    //initialize output matrix
+    output = (lli **) malloc (I * sizeof (lli *));
+    for (lli _i = 0; _i < I; ++_i) {
+		output[_i] = (lli *) malloc(K * sizeof(lli));
+    }
 
     //get 2d matrix
-    lli matrix2[3][2]={{1,1},{1,1},{1,1}};
+    
 
     //get rows and then keep calling and sending it to function
     //write output matrix
 
     
-    lli matrix1[4][3]={{1,2,3},{5,6,7},{8,9,10},{11,12,13}};
 
 
-    create_threads_and_multiply (i, j, k, row, matrix2, output);
+    for(int i=0;i<I;i++)
+    {
+        if(MAX_THREADS>J)
+            create_threads_and_multiply (J, matrix1[i], i);
+        else
+            create_threads_and_multiply (MAX_THREADS, matrix1[i], i);
+        
+    }
+
+    printf ("first cell: %lld\n", output[0][0]);
+
+
 
     return 0;
 }
