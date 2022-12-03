@@ -20,6 +20,8 @@ lli **matrix1, **matrix2, **output;
 pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
 // lli *matrix1, *matrix2, *output;
 
+void create_threads_and_multiply (int max_thread_count, lli* row, int row_no);
+
 /* USER-DEFINED DATA STRUCTURES */
 typedef struct {
     /*
@@ -234,6 +236,14 @@ void shared_memory (file_read_data file) {
     lli rows = file.max_rows;
     lli cols = file.cols;
 
+    // for (int i = 0; i < I; ++i) {
+    //     if(MAX_THREADS > J) {
+    //         create_threads_and_multiply (J, matrix1[i], i);
+    //     } else {
+    //         create_threads_and_multiply (MAX_THREADS, matrix1[i], i);
+    //     }
+    // }
+
     if (file_number == 1) {
         key_t key1 = ftok(file.filename, 65);
         // int shmid1 = shmget(key1, (rows) * sizeof (lli*), 0666|IPC_CREAT);
@@ -246,6 +256,11 @@ void shared_memory (file_read_data file) {
                 // printf ("%lld ", str1[k]);
                 matrix1[i][j] = str1[k];
                 k++;
+            }
+            if(MAX_THREADS > J) {
+                create_threads_and_multiply (J, matrix1[i], i);
+            } else {
+                create_threads_and_multiply (MAX_THREADS, matrix1[i], i);
             }
             printf ("\n");
         }
@@ -433,14 +448,14 @@ int main (int argc, char **argv) {
         printf ("\n");
     }
 
-    for (int i = 0; i < I; ++i) {
-        if(MAX_THREADS > J) {
-            create_threads_and_multiply (J, matrix1[i], i);
-        } else {
-            create_threads_and_multiply (MAX_THREADS, matrix1[i], i);
-        }
+    // for (int i = 0; i < I; ++i) {
+    //     if(MAX_THREADS > J) {
+    //         create_threads_and_multiply (J, matrix1[i], i);
+    //     } else {
+    //         create_threads_and_multiply (MAX_THREADS, matrix1[i], i);
+    //     }
         
-    }
+    // }
 
     printf ("FINAL OUTPUT...\n");
     for (lli row = 0; row < I; ++row) {
