@@ -19,6 +19,9 @@ typedef long long int lli;
 lli I, J, K;
 lli **matrix1, **matrix2, **output;
 pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
+key_t key_p1;
+int p1_shmid;
+lli *p1_str ;
 // lli *matrix1, *matrix2, *output;
 
 void create_threads_and_multiply (int max_thread_count, lli* row, int row_no);
@@ -247,10 +250,27 @@ void shared_memory (file_read_data file) {
 
     if (file_number == 1)
     {
-        key_t key1 = ftok(file.filename, 65);
+        
+        key_t key1 = ftok(".", 100*100*100*100+1);
+        if (key1 == -1) {
+            printf ("key1 is -1\n");
+        }
+
         // int shmid1 = shmget(key1, (rows) * sizeof (lli*), 0666|IPC_CREAT);
-        int shmid1 = shmget(key1, (cols) * sizeof (lli *), 0666|IPC_CREAT);
-        lli *str1 = (lli*) shmat(shmid1, 0, 0);
+        // int shmid1 = shmget(key1, sizeof (lli) * (cols * rows), 0666|IPC_CREAT);
+        int shmid1 = shmget(key1, sizeof (lli *) * rows * cols, 0666|IPC_CREAT);
+        // int shmid1 = shmget(key1, 1024, 0666|IPC_CREAT);
+
+        
+        if (shmid1 == -1) {
+            printf ("shmid1 is -1\n");
+        }
+
+        // str1 = (lli*) shmat(shmid1, 0, 0);
+        // int (*str1)[rows];
+        // lli *str1;
+        lli *str1 = (lli *) shmat(shmid1, NULL, 0);
+        // int shmid1 = shmget(key1, (rows) * sizeof (lli*), 0666|IPC_CREAT);
 
         lli k = 0;
         for (lli i = 0; i < rows; ++i){
@@ -272,12 +292,29 @@ void shared_memory (file_read_data file) {
     }
     else
     {
-        key_t key2 = ftok(file.filename, 66);
-        // matrix1 = (lli **) malloc (I *  sizeof (lli *));
-        int shmid2 = shmget(key2, rows * cols * sizeof (lli *), 0666|IPC_CREAT);
-        // matrix2 = (lli **) malloc (J * sizeof (lli *));
+        key_t key2 = ftok(".", 17);
+        if (key2 == -1) {
+            printf ("key2 is -1\n");
+        }
 
-        lli *str2 = (lli*) shmat(shmid2, 0, 0);
+        // int shmid1 = shmget(key1, (rows) * sizeof (lli*), 0666|IPC_CREAT);
+        // int shmid1 = shmget(key1, sizeof (lli) * (cols * rows), 0666|IPC_CREAT);
+        int shmid2 = shmget(key2, sizeof (lli *) * rows * cols, 0666|IPC_CREAT);
+        // int shmid1 = shmget(key1, 1024, 0666|IPC_CREAT);
+
+        
+        if (shmid2 == -1) {
+            printf ("shmid2 is -1\n");
+        }
+
+        // str1 = (lli*) shmat(shmid1, 0, 0);
+        // int (*str1)[rows];
+        // lli *str1;
+        lli *str2 = (lli *) shmat(shmid2, NULL, 0);
+
+        if (str2 == (lli *)-1) {
+            printf ("str2 is -1\n");
+        }
 
 
         printf ("Reading matrix 2 from IPC:\n");
@@ -285,7 +322,7 @@ void shared_memory (file_read_data file) {
             for (lli j = 0; j < cols; ++j) {
                 // str2[i * rows + j] = matrix2[i][j];
                 // printf ("new cell read %lld \n", str2[i * rows + j]);
-                matrix2[i][j] = str2[i * rows + j];
+                matrix2[i][j] = str2[i * cols + j];
             }
             // printf ("\n");
         }
@@ -338,6 +375,15 @@ int main (int argc, char **argv) {
 
     key_t key_sched2 = ftok("shmfile2", 66);
     int sched_shmid2 = shmget(key_sched2, 2 * sizeof (lli *), 0666|IPC_CREAT);
+
+    // key_p1 = ftok("p1_process", 66);
+    // p1_shmid = shmget(key_p1, 1 * sizeof (lli *), 0666|IPC_CREAT);
+    // p1_str = (lli*) shmat(p1_shmid, 0, 0);
+    // printf ("P2 p1_str: %lld\n", p1_str[0]);
+
+    key_p1 = ftok(".", 0);
+    p1_shmid = shmget(key_p1, 1 * sizeof (lli *), 0666|IPC_CREAT);
+    p1_str  = (lli*) shmat(p1_shmid, 0, 0);
 
     lli *sched_str2 = (lli*) shmat(sched_shmid2, 0, 0);
     sched_str2[0] = 1;
@@ -438,8 +484,16 @@ int main (int argc, char **argv) {
     file_read_data file1 = {.filename = in1, .cols = J, .matrix = matrix1, .max_rows = I};
     file_read_data file2 = {.filename = in2, .cols = K, .matrix = matrix2, .max_rows = J};
 
+    while(p1_str[0]<0)
+    {
+        continue;
+    }
     printf ("Reading matrix 2 from IPC\n");
     shared_memory (file2);
+    while(p1_str[0]<1)
+    {
+        continue;
+    }
     printf ("SHM matrix 2 done\n");
     printf ("Reading matrix 1 from IPC\n");
     shared_memory (file1);
@@ -523,8 +577,7 @@ int main (int argc, char **argv) {
     // // system(cmd2);
     // // printf ("Graph plotted successfully\n");
 
-    sched_str2[0] = 0;
-    shmdt (sched_str2);
+    
 
     // printf ("FINAL OUTPUT...\n");
     // for (lli row = 0; row < I; ++row) {
@@ -535,5 +588,9 @@ int main (int argc, char **argv) {
     // }
 
     printf ("Program success\n");
+
+    sched_str2[0] = 0;
+    shmdt (sched_str2);
+
     return 0;
 }

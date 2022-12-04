@@ -29,7 +29,7 @@ int main(int argc, char **argv)
     snprintf(arg2, sizeof(arg2), "%lli", J);
     snprintf(arg3, sizeof(arg3), "%lli", K);
 
-    key_t key_sched1 = ftok("shmfile1", 66);
+    key_t key_sched1 = ftok("shmfile1", 5);
     int sched_shmid1 = shmget(key_sched1, 2 * sizeof(lli *), 0666 | IPC_CREAT);
     lli *sched_str1 = (lli *)shmat(sched_shmid1, 0, 0);
 
@@ -77,8 +77,9 @@ int main(int argc, char **argv)
     //pause both processes
     kill(sched_str1[1],SIGSTOP); // we are NOT killing the processes.
     kill(sched_str2[1],SIGSTOP);
-    
-    kill(sched_str1[1],SIGCONT); 
+
+    clock_gettime(CLOCK_MONOTONIC, &start_time);
+    // kill(sched_str1[1],SIGCONT); 
     while (1)
     {
         printf("\n-------Entered while with pid %d-------\n", getpid());
@@ -86,22 +87,25 @@ int main(int argc, char **argv)
         {
             printf("if 1\n");
             kill(sched_str2[1], SIGSTOP); //STOP P2
-            clock_gettime(CLOCK_MONOTONIC, &start_time);
-            kill(sched_str1[1], SIGCONT); //LET P1 WORK
-            clock_gettime(CLOCK_MONOTONIC, &end_time);
-            total_time_taken = ((double)end_time.tv_sec + 1.0e-9*end_time.tv_nsec) - ((double)start_time.tv_sec + 1.0e-9*start_time.tv_nsec);
-
-            printf("P1, %.9f \n", total_time_taken);
-            fprintf(fpt,"P1, %.9f \n", total_time_taken);
-            usleep(1000);
-
-            kill(sched_str1[1], SIGSTOP); //STOP P1
-            clock_gettime(CLOCK_MONOTONIC, &start_time);
-            kill(sched_str2[1], SIGCONT); //LET P2 WORK
             clock_gettime(CLOCK_MONOTONIC, &end_time);
             total_time_taken = ((double)end_time.tv_sec + 1.0e-9*end_time.tv_nsec) - ((double)start_time.tv_sec + 1.0e-9*start_time.tv_nsec);
             printf("P2, %.9f \n", total_time_taken);
             fprintf(fpt,"P2, %.9f \n", total_time_taken);
+
+
+            clock_gettime(CLOCK_MONOTONIC, &start_time);
+            kill(sched_str1[1], SIGCONT); //LET P1 WORK
+            usleep(1000);
+            kill(sched_str1[1], SIGSTOP); //STOP P1
+            clock_gettime(CLOCK_MONOTONIC, &end_time);
+            total_time_taken = ((double)end_time.tv_sec + 1.0e-9*end_time.tv_nsec) - ((double)start_time.tv_sec + 1.0e-9*start_time.tv_nsec);
+            printf("P1, %.9f \n", total_time_taken);
+            fprintf(fpt,"P1, %.9f \n", total_time_taken);
+
+
+            clock_gettime(CLOCK_MONOTONIC, &start_time);
+            kill(sched_str2[1], SIGCONT); //LET P2 WORK
+            
             usleep(1000);
         }
         if (sched_str1[0] && !sched_str2[0])
@@ -114,6 +118,8 @@ int main(int argc, char **argv)
         {
             printf("if 3\n");
             kill(sched_str2[1], SIGCONT);
+            clock_gettime(CLOCK_MONOTONIC, &end_time);
+            total_time_taken = ((double)end_time.tv_sec + 1.0e-9*end_time.tv_nsec) - ((double)start_time.tv_sec + 1.0e-9*start_time.tv_nsec);
         }
         if(!sched_str1[0] && !sched_str2[0])
         {
