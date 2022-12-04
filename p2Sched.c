@@ -275,7 +275,6 @@ void shared_memory (file_read_data file) {
         lli k = 0;
         for (lli i = 0; i < rows; ++i){
             for (lli j = 0; j < cols; ++j){
-                printf ("new cell read %lld\n ", str1[k]);
                 matrix1[i][j] = str1[k];
                 k++;
             }
@@ -320,16 +319,9 @@ void shared_memory (file_read_data file) {
         printf ("Reading matrix 2 from IPC:\n");
         for (lli i = 0; i < rows; ++i) {
             for (lli j = 0; j < cols; ++j) {
-                // str2[i * rows + j] = matrix2[i][j];
-                // printf ("new cell read %lld \n", str2[i * rows + j]);
                 matrix2[i][j] = str2[i * cols + j];
             }
-            // printf ("\n");
         }
-
-        // str = matrix2;
-        // shmdt(str2);
-        // shmctl (shmid2, IPC_RMID, NULL);
     }
 }
 
@@ -373,7 +365,7 @@ int main (int argc, char **argv) {
         return (EXIT_FAILURE);
     }
 
-    key_t key_sched2 = ftok("shmfile2", 66);
+    key_t key_sched2 = ftok("shmfile2", 10);
     int sched_shmid2 = shmget(key_sched2, 2 * sizeof (lli *), 0666|IPC_CREAT);
 
     // key_p1 = ftok("p1_process", 66);
@@ -426,61 +418,7 @@ int main (int argc, char **argv) {
     strcpy(in2, argv[5]);
     strcpy(out, argv[6]);
 
-    /* READING VALUES FROM TXT FILE INTO MATRICES  */
-    // read_matrix (in1);
-    // read_matrix (in2);
-
-    /*
-        num_threads: lines_read 
-        1   : 3
-        2   : 1, 2
-        3   : 1, 1, 1
-        4   :
-        5   :
-    */
-
-    
-    /* for in1.txt  */
-    // file_read_data file = {.filename = in1, .cols = J, .matrix = matrix1, .max_rows = I};
-    // create_threads_and_read (I, J, MAX_THREADS, file);
-    // FILE *fp = fopen (in1, "r");
-    // if(fp == NULL) {
-    //     printf ("Could not read file %s\n", in1);
-    //     return EXIT_FAILURE;
-    // }
-
     FILE *fpt;
-    // fpt = fopen("timing.csv", "w");
-    // if(fpt == NULL) {
-    //     printf ("Could not create CSV file\n");
-    //     return EXIT_FAILURE;
-    // }
-    // // fprintf(fpt,"Threads, Time (ns)\n");
-
-    // for (int max_thread_count = MAX_THREADS; max_thread_count <= MAX_THREADS; ++max_thread_count) {
-    //     file_read_data file = {.filename = in1, .cols = J, .matrix = matrix1, .max_rows = I};
-    //     struct timespec start_time = {0,0}, end_time = {0, 0};
-    //     clock_gettime(CLOCK_MONOTONIC, &start_time);
-    //     create_threads_and_read (I, J, max_thread_count, file, fp);
-    //     clock_gettime(CLOCK_MONOTONIC, &end_time);
-    //     double total_time_taken = ((double)end_time.tv_sec + 1.0e-9*end_time.tv_nsec) - ((double)start_time.tv_sec + 1.0e-9*start_time.tv_nsec);
-    //     if (max_thread_count == THREAD_F) {
-    //         printf("Time taken by %d threads is %.9f seconds\n", max_thread_count, total_time_taken * 100000);
-    //         fprintf(fpt,"%d, %.9f \n", max_thread_count, total_time_taken * 10);
-    //     } else if (max_thread_count == THREAD_T) {
-    //         printf("Time taken by %d threads is %.9f seconds\n", max_thread_count, total_time_taken / 300);
-    //         fprintf(fpt,"%d, %.9f \n", max_thread_count, total_time_taken / 3);
-    //     } else {
-    //         printf("Time taken by %d threads is %.9f seconds\n", max_thread_count, total_time_taken);
-    //         fprintf(fpt,"%d, %.9f \n", max_thread_count, total_time_taken);
-    //     }
-    // }
-    // fclose(fpt);
-
-    // char *cmd = "gnuplot testplot.gnu";
-    // system(cmd);
-    // printf ("Graph plotted successfully\n");
-
     file_read_data file1 = {.filename = in1, .cols = J, .matrix = matrix1, .max_rows = I};
     file_read_data file2 = {.filename = in2, .cols = K, .matrix = matrix2, .max_rows = J};
 
@@ -550,43 +488,6 @@ int main (int argc, char **argv) {
         }
     }
     fclose (fptOut);
-
-    // // FILE *fpt;
-    // fpt = fopen("p2_timing.csv", "w");
-    // if(fpt == NULL) {
-    //     printf ("Could not create CSV file\n");
-    //     return EXIT_FAILURE;
-    // }
- 
-    // for(int thread_count = MAX_THREADS; thread_count <= MAX_THREADS; thread_count++) {
-    //     struct timespec start_time = {0,0}, end_time = {0, 0};
-    //     if(thread_count > J)
-    //         break;
-    //     clock_gettime(CLOCK_MONOTONIC, &start_time);
-    //     for(int i=0;i<I;i++) {
-    //         create_threads_and_multiply (thread_count, matrix1[i], i);       
-    //     }
-    //     clock_gettime(CLOCK_MONOTONIC, &end_time);
-    //     double total_time_taken = ((double)end_time.tv_sec + 1.0e-9*end_time.tv_nsec) - ((double)start_time.tv_sec + 1.0e-9*start_time.tv_nsec);
-    //     printf("Time taken by %d threads is %.9f seconds\n", thread_count, total_time_taken);
-    //     fprintf(fpt,"%d, %.9f \n", thread_count, total_time_taken);
-    // }
-    // fclose(fpt);
-
-    // // char *cmd2 = "gnuplot p2Plot.gnu";
-    // // system(cmd2);
-    // // printf ("Graph plotted successfully\n");
-
-    
-
-    // printf ("FINAL OUTPUT...\n");
-    // for (lli row = 0; row < I; ++row) {
-    //     for (lli col = 0; col < K; ++col) {
-    //         printf ("%lld ", output[row][col]);
-    //     }
-    //     printf ("\n");
-    // }
-
     printf ("Program success\n");
 
     sched_str2[0] = 0;

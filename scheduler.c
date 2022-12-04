@@ -12,6 +12,8 @@
 typedef long long int lli;
 lli I, J, K;
 
+#define QUANTUM 2
+
 int main(int argc, char **argv)
 {
 
@@ -33,7 +35,7 @@ int main(int argc, char **argv)
     int sched_shmid1 = shmget(key_sched1, 2 * sizeof(lli *), 0666 | IPC_CREAT);
     lli *sched_str1 = (lli *)shmat(sched_shmid1, 0, 0);
 
-    key_t key_sched2 = ftok("shmfile2", 66);
+    key_t key_sched2 = ftok("shmfile2", 10);
     int sched_shmid2 = shmget(key_sched2, 2 * sizeof(lli *), 0666 | IPC_CREAT);
     lli *sched_str2 = (lli *)shmat(sched_shmid2, 0, 0);
 
@@ -55,20 +57,11 @@ int main(int argc, char **argv)
     sched_str2[0]=1;
     if (fork() == 0)
     {
-        // printf("a\n");
-        // printf("%lld %lld \n", I, getpid());
-        // execl("./test.out", "./test.out", NULL);
-        
         execlp("./p1Sched.out", "p1Sched.out", arg1, arg2, arg3, in1, in2, out, NULL);
-        // printf("a done\n");
     }
     if (fork() == 0)
     {
-        // printf("b\n");
-        // printf("%lld %lld \n", I, getpid());
-        
         execlp("./p2Sched.out", "p2Sched.out", arg1, arg2, arg3, in1, in2, out, NULL);
-        // printf("b done\n");
     }
     printf("%d done\n",getpid());
     // return 0;
@@ -95,7 +88,7 @@ int main(int argc, char **argv)
 
             clock_gettime(CLOCK_MONOTONIC, &start_time);
             kill(sched_str1[1], SIGCONT); //LET P1 WORK
-            usleep(1000);
+            usleep(QUANTUM*1000);
             kill(sched_str1[1], SIGSTOP); //STOP P1
             clock_gettime(CLOCK_MONOTONIC, &end_time);
             total_time_taken = ((double)end_time.tv_sec + 1.0e-9*end_time.tv_nsec) - ((double)start_time.tv_sec + 1.0e-9*start_time.tv_nsec);
@@ -106,7 +99,7 @@ int main(int argc, char **argv)
             clock_gettime(CLOCK_MONOTONIC, &start_time);
             kill(sched_str2[1], SIGCONT); //LET P2 WORK
             
-            usleep(1000);
+            usleep(QUANTUM*1000);
         }
         if (sched_str1[0] && !sched_str2[0])
         {
@@ -120,10 +113,16 @@ int main(int argc, char **argv)
             kill(sched_str2[1], SIGCONT);
             clock_gettime(CLOCK_MONOTONIC, &end_time);
             total_time_taken = ((double)end_time.tv_sec + 1.0e-9*end_time.tv_nsec) - ((double)start_time.tv_sec + 1.0e-9*start_time.tv_nsec);
+            printf("P2, %.9f \n", total_time_taken);
+            fprintf(fpt,"P2, %.9f \n", total_time_taken);
         }
         if(!sched_str1[0] && !sched_str2[0])
         {
             printf("if 4\n");
+            clock_gettime(CLOCK_MONOTONIC, &end_time);
+            total_time_taken = ((double)end_time.tv_sec + 1.0e-9*end_time.tv_nsec) - ((double)start_time.tv_sec + 1.0e-9*start_time.tv_nsec);
+            printf("P2, %.9f \n", total_time_taken);
+            fprintf(fpt,"P2, %.9f \n", total_time_taken);
             break;
         }
         

@@ -357,6 +357,7 @@ void create_threads_and_read (int rows, int cols, int max_thread_count, file_rea
 }
 
 int main (int argc, char **argv) {
+    
     printf ("In.\n");
 
     /* there must be exactly 7 cmd line args  */
