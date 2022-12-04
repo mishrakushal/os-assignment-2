@@ -215,44 +215,6 @@ void shared_memory (file_read_data file) {
         shmdt(str1);
         // shmctl (shmid1, IPC_RMID, NULL);
     } else {
-        /*
-            int key = ftok(".", 34);
-            int *arr;
-            
-            int shmid = shmget(key,sizeof(int)*5,0666|IPC_CREAT);
-
-            arr = (int *)shmat(shmid, NULL, 0);
-            int i;
-            for(i=0; i<5; i++)
-                arr[i] = i*3;
-        */
-
-        // key_t key2 = ftok(".", 66);
-        // // matrix1 = (lli **) malloc (I *  sizeof (lli *));
-        // int shmid2 = shmget(key2, sizeof (lli) * rows * cols, 0666|IPC_CREAT);
-        // // int shmid2 = shmget(key2, (rows * cols * sizeof (lli *)), 0666|IPC_CREAT);
-        // // matrix2 = (lli **) malloc (J * sizeof (lli *));
-
-
-        // // (rows) * (cols * sizeof (lli *))
-
-        // // str2 = (lli*) shmat(shmid2, 0, 0);
-        // lli *str2 = (lli*) shmat(shmid2, 0, 0);
-
-        // for (lli i = 0; i < rows; ++i) {
-        //     for (lli j = 0; j < cols; ++j) {
-        //         str2[i * rows + j] = matrix2[i][j];
-        //         // str2[i][j] = matrix2[i][j];
-        //         printf ("%lld ", str2[i * rows + j]);
-        //     }
-        //     printf ("\n");
-        // }
-
-        // --------------------------------------------
-
-        // key_p1 = ftok(".", 66);
-        // p1_shmid = shmget(key_p1, 1 * sizeof (lli *), 0666|IPC_CREAT);
-        // p1_str = (lli*) shmat(p1_shmid, 0, 0);
 
         key_t key2 = ftok(".", 17);
         if (key2 == -1) {
@@ -449,30 +411,6 @@ int main (int argc, char **argv) {
 
     file_read_data file = {.filename = in1, .cols = J, .matrix = matrix1, .max_rows = I};
     create_threads_and_read (I, J, THREAD_COUNT, file, fp);
-
-    // for (int max_thread_count = THREAD_COUNT; max_thread_count <= THREAD_COUNT; ++max_thread_count) {
-        
-    //     struct timespec start_time = {0,0}, end_time = {0, 0};
-    //     clock_gettime(CLOCK_MONOTONIC, &start_time);
-        
-    //     clock_gettime(CLOCK_MONOTONIC, &end_time);
-    //     double total_time_taken = ((double)end_time.tv_sec + 1.0e-9*end_time.tv_nsec) - ((double)start_time.tv_sec + 1.0e-9*start_time.tv_nsec);
-    //     if (max_thread_count == THREAD_F) {
-    //         printf("Time taken by %d threads is %.9f seconds\n", max_thread_count, total_time_taken * 100000);
-    //         fprintf(fpt,"%d, %.9f \n", max_thread_count, total_time_taken * 10);
-    //     } else if (max_thread_count == THREAD_COUNT / 5) {
-    //         printf("Time taken by %d threads is %.9f seconds\n", max_thread_count, total_time_taken / 300);
-    //         fprintf(fpt,"%d, %.9f \n", max_thread_count, total_time_taken / 3);
-    //     } else {
-    //         printf("Time taken by %d threads is %.9f seconds\n", max_thread_count, total_time_taken);
-    //         fprintf(fpt,"%d, %.9f \n", max_thread_count, total_time_taken);
-    //     }
-    // }
-    // fclose(fpt);
-
-    // char *cmd = "gnuplot testplot.gnu";
-    // system(cmd);
-    // printf ("Graph plotted successfully\n");
 
     printf ("After reading matrix 1...\n");
     for (lli row = 0; row < I; ++row) {
